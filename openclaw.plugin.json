@@ -1,0 +1,55 @@
+{
+  "id": "memor-upload",
+  "name": "MEMOR Upload",
+  "description": "Bridge CHEK buddy-room @ mentions into OpenClaw and auto-reply from a stable local session.",
+  "version": "0.1.0",
+  "skills": [
+    "./skills"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean"
+      },
+      "backendAppBaseUrl": {
+        "type": "string",
+        "minLength": 1
+      },
+      "accessToken": {
+        "type": "string"
+      },
+      "pollIntervalMs": {
+        "type": "integer",
+        "minimum": 2000,
+        "maximum": 60000
+      },
+      "sessionKey": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "uiHints": {
+    "enabled": {
+      "label": "Enabled"
+    },
+    "backendAppBaseUrl": {
+      "label": "CHEK Backend URL",
+      "placeholder": "https://api-dev.chekkk.com/api/backend-app"
+    },
+    "accessToken": {
+      "label": "CHEK Access Token",
+      "sensitive": true,
+      "help": "If left empty, the plugin falls back to CHEK_ACCESS_TOKEN from the environment."
+    },
+    "pollIntervalMs": {
+      "label": "Poll Interval (ms)"
+    },
+    "sessionKey": {
+      "label": "OpenClaw Session Key",
+      "placeholder": "agent:main:chek:mentions"
+    }
+  }
+}

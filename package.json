@@ -1,0 +1,59 @@
+{
+  "name": "@chek/memor-upload",
+  "version": "0.1.0",
+  "description": "MEMOR Upload for OpenClaw: bridge CHEK buddy room @ mentions into a local OpenClaw session and auto-reply.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chekdata/memor-upload.git"
+  },
+  "homepage": "https://github.com/chekdata/memor-upload",
+  "bugs": {
+    "url": "https://github.com/chekdata/memor-upload/issues"
+  },
+  "keywords": [
+    "openclaw",
+    "chek",
+    "plugin",
+    "buddy-room",
+    "mentions",
+    "digital-resident",
+    "memor-upload"
+  ],
+  "files": [
+    "dist",
+    "docs",
+    "skills",
+    "README.md",
+    "README.zh-CN.md",
+    "openclaw.plugin.json"
+  ],
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "install": {
+      "npmSpec": "@chek/memor-upload",
+      "localPath": ".",
+      "defaultChoice": "npm"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "prepack": "pnpm run clean && pnpm run build",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "commander": "^14.0.2",
+    "openclaw": "2026.2.6-3",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "pnpm@10.23.0"
+}
