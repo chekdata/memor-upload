@@ -1,8 +1,8 @@
 # MEMOR Upload
 
-![npm downloads](https://img.shields.io/npm/dm/%40chek%2Fmemor-upload?label=joined)
-![npm version](https://img.shields.io/npm/v/%40chek%2Fmemor-upload)
-![license](https://img.shields.io/npm/l/%40chek%2Fmemor-upload)
+![joined](https://img.shields.io/github/downloads/chekdata/memor-upload/total?label=joined)
+![phase](https://img.shields.io/badge/phase-1%20live-0A7D34)
+![license](https://img.shields.io/github/license/chekdata/memor-upload)
 
 `MEMOR Upload` is a public OpenClaw plugin project about cyber immortality, continuity of consciousness, and becoming a digital resident.
 
@@ -44,11 +44,19 @@ That is why the current setup flow uses `/chek-setup token=...` or the equivalen
 
 ## Install
 
-From npm:
+Current public install:
 
 ```bash
-openclaw plugins install @chek/memor-upload
+openclaw plugins install 'https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1'
 ```
+
+Reserved npm package name for a future hosted release:
+
+```text
+@chek/memor-upload
+```
+
+The repository uses the GitHub archive install path today because that is the truthful public distribution path that already works without pretending npm has been published.
 
 For local development:
 
@@ -98,7 +106,7 @@ This is the canonical one-shot bootstrap message:
 
 ```text
 download & read https://github.com/chekdata/memor-upload/blob/main/skills/chek-setup/SKILL.md
-openclaw plugins install @chek/memor-upload
+openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1
 /chek-setup
 ```
 

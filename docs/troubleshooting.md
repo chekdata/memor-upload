@@ -12,7 +12,7 @@ openclaw plugins list
 然后重试：
 
 ```bash
-openclaw plugins install @chek/memor-upload
+openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1
 ```
 
 本地联调可以直接改用：

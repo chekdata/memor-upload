@@ -34,7 +34,7 @@
       "./dist/index.js"
     ],
     "install": {
-      "npmSpec": "@chek/memor-upload",
+      "npmSpec": "https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1",
       "localPath": ".",
       "defaultChoice": "npm"
     }

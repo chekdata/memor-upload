@@ -35,6 +35,8 @@ describe("render helpers", () => {
   });
 
   it("builds bootstrap text", () => {
-    expect(buildBootstrapMessage()).toContain("openclaw plugins install @chek/memor-upload");
+    expect(buildBootstrapMessage()).toContain(
+      "openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1",
+    );
   });
 });

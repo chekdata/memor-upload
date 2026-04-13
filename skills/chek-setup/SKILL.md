@@ -59,6 +59,6 @@ Current Phase 1 stays honest:
 
 ```text
 download & read https://github.com/chekdata/memor-upload/blob/main/skills/chek-setup/SKILL.md
-openclaw plugins install @chek/memor-upload
+openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1
 /chek-setup
 ```

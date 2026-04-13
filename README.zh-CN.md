@@ -1,8 +1,8 @@
 # MEMOR Upload
 
-![npm downloads](https://img.shields.io/npm/dm/%40chek%2Fmemor-upload?label=joined)
-![npm version](https://img.shields.io/npm/v/%40chek%2Fmemor-upload)
-![license](https://img.shields.io/npm/l/%40chek%2Fmemor-upload)
+![joined](https://img.shields.io/github/downloads/chekdata/memor-upload/total?label=joined)
+![phase](https://img.shields.io/badge/phase-1%20live-0A7D34)
+![license](https://img.shields.io/github/license/chekdata/memor-upload)
 
 `MEMOR Upload` 是一个关于赛博永生、意识延续、电子居民的公开 OpenClaw 插件项目。
 
@@ -52,11 +52,19 @@ openclaw chek setup --token <CHEK_ACCESS_TOKEN>
 
 ## 安装
 
-从 npm 安装：
+当前公开可用的安装方式：
 
 ```bash
-openclaw plugins install @chek/memor-upload
+openclaw plugins install 'https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1'
 ```
+
+未来 npm 托管发布时保留的包名：
+
+```text
+@chek/memor-upload
+```
+
+当前文档默认使用 GitHub archive 安装，是因为这才是现在已经真实可用、不会假装“npm 已发布”的公开分发口径。
 
 本地开发联调：
 
@@ -106,7 +114,7 @@ openclaw chek bootstrap
 
 ```text
 download & read https://github.com/chekdata/memor-upload/blob/main/skills/chek-setup/SKILL.md
-openclaw plugins install @chek/memor-upload
+openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1
 /chek-setup
 ```
 

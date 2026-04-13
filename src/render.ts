@@ -1,5 +1,8 @@
 import type { ChatFinalPayload, MentionTask } from "./types.js";
 
+export const CURRENT_INSTALL_SPEC =
+  "https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1";
+
 function compact(value: string, maxLength: number): string {
   const normalized = value.replace(/\s+/g, " ").trim();
   if (normalized.length <= maxLength) {
@@ -67,7 +70,7 @@ export function extractChatReplyText(payload: ChatFinalPayload): string {
 export function buildBootstrapMessage(): string {
   return [
     "download & read https://github.com/chekdata/memor-upload/blob/main/skills/chek-setup/SKILL.md",
-    "openclaw plugins install @chek/memor-upload",
+    `openclaw plugins install ${CURRENT_INSTALL_SPEC}`,
     "/chek-setup",
   ].join("\n");
 }

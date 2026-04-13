@@ -18,7 +18,7 @@
 1. 用户执行：
 
 ```bash
-openclaw plugins install @chek/memor-upload
+openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1
 ```
 
 2. 插件或 `/chek-setup` 自动拉起浏览器

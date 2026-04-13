@@ -4,7 +4,7 @@
 
 ```text
 download & read https://github.com/chekdata/memor-upload/blob/main/skills/chek-setup/SKILL.md
-openclaw plugins install @chek/memor-upload
+openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1
 /chek-setup
 ```
 
@@ -13,7 +13,7 @@ openclaw plugins install @chek/memor-upload
 这条 bootstrap message 已经能完成两件事：
 
 1. 让 OpenClaw 拿到安装说明和 setup skill
-2. 安装 `@chek/memor-upload` 插件，并进入 setup 指引
+2. 安装 `MEMOR Upload` 插件，并进入 setup 指引
 
 但它目前还不是零输入授权，因为后端还没有真正提供 device-code / browser callback API。
 
