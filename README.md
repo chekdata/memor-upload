@@ -47,7 +47,7 @@ That is why the current setup flow uses `/chek-setup token=...` or the equivalen
 Current public install:
 
 ```bash
-openclaw plugins install 'https://github.com/chekdata/memor-upload/releases/download/v0.1.0/chek-memor-upload-0.1.0.tgz?download=1'
+openclaw plugins install 'https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1'
 ```
 
 Reserved npm package name for a future hosted release:
@@ -56,7 +56,9 @@ Reserved npm package name for a future hosted release:
 @chek/memor-upload
 ```
 
-The repository uses the GitHub release asset today because that is the truthful public distribution path that already works and lets the joined/download count reflect the actual plugin package.
+The repository uses the GitHub archive install path today because that is the public path we have actually verified end-to-end in OpenClaw.
+
+There is also a packaged GitHub release at [v0.1.0](https://github.com/chekdata/memor-upload/releases/tag/v0.1.0) for versioned downloads and release-based download stats.
 
 For local development:
 
@@ -106,7 +108,7 @@ This is the canonical one-shot bootstrap message:
 
 ```text
 download & read https://github.com/chekdata/memor-upload/blob/main/skills/chek-setup/SKILL.md
-openclaw plugins install https://github.com/chekdata/memor-upload/releases/download/v0.1.0/chek-memor-upload-0.1.0.tgz?download=1
+openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1
 /chek-setup
 ```
 

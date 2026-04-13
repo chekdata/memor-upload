@@ -55,7 +55,7 @@ openclaw chek setup --token <CHEK_ACCESS_TOKEN>
 当前公开可用的安装方式：
 
 ```bash
-openclaw plugins install 'https://github.com/chekdata/memor-upload/releases/download/v0.1.0/chek-memor-upload-0.1.0.tgz?download=1'
+openclaw plugins install 'https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1'
 ```
 
 未来 npm 托管发布时保留的包名：
@@ -64,7 +64,9 @@ openclaw plugins install 'https://github.com/chekdata/memor-upload/releases/down
 @chek/memor-upload
 ```
 
-当前文档默认使用 GitHub release asset 安装，是因为这才是现在已经真实可用、不会假装“npm 已发布”的公开分发口径，而且下载统计也会对应到插件包本身。
+当前文档默认使用 GitHub archive 安装，是因为这才是我们已经在 OpenClaw 里真实验证通过的公开分发口径。
+
+同时，仓库也已经发布了 [v0.1.0 release](https://github.com/chekdata/memor-upload/releases/tag/v0.1.0)，方便做版本化下载和 release 维度的下载统计。
 
 本地开发联调：
 
@@ -114,7 +116,7 @@ openclaw chek bootstrap
 
 ```text
 download & read https://github.com/chekdata/memor-upload/blob/main/skills/chek-setup/SKILL.md
-openclaw plugins install https://github.com/chekdata/memor-upload/releases/download/v0.1.0/chek-memor-upload-0.1.0.tgz?download=1
+openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1
 /chek-setup
 ```
 
