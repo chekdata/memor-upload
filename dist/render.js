@@ -1,4 +1,4 @@
-export const CURRENT_INSTALL_SPEC = "https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1";
+export const CURRENT_INSTALL_SPEC = "https://github.com/chekdata/memor-upload/releases/download/v0.1.0/chek-memor-upload-0.1.0.tgz?download=1";
 function compact(value, maxLength) {
     const normalized = value.replace(/\s+/g, " ").trim();
     if (normalized.length <= maxLength) {

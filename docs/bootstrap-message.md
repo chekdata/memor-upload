@@ -4,7 +4,7 @@
 
 ```text
 download & read https://github.com/chekdata/memor-upload/blob/main/skills/chek-setup/SKILL.md
-openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1
+openclaw plugins install https://github.com/chekdata/memor-upload/releases/download/v0.1.0/chek-memor-upload-0.1.0.tgz?download=1
 /chek-setup
 ```
 

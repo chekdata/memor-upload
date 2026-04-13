@@ -24,6 +24,6 @@ describe("render helpers", () => {
         expect(buildFallbackReply(task)).toContain("模型");
     });
     it("builds bootstrap text", () => {
-        expect(buildBootstrapMessage()).toContain("openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1");
+        expect(buildBootstrapMessage()).toContain("openclaw plugins install https://github.com/chekdata/memor-upload/releases/download/v0.1.0/chek-memor-upload-0.1.0.tgz?download=1");
     });
 });
