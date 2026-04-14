@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
+import { existsSync, promises as fs } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -11,14 +11,74 @@ const require = createRequire(import.meta.url);
 const execFileAsync = promisify(execFile);
 const gatewayTimeoutMs = 45_000;
 
-let cachedCliEntry: string | null = null;
+type GatewayInvocation = {
+  command: string;
+  argsPrefix: string[];
+};
 
-function resolveCliEntry(): string {
-  if (cachedCliEntry) {
-    return cachedCliEntry;
+let cachedInvocation: GatewayInvocation | null = null;
+
+function isUsableCliPath(candidate: string): boolean {
+  return Boolean(candidate && existsSync(candidate));
+}
+
+export function resolveGatewayInvocation(
+  options: {
+    cliEntryEnv?: string;
+    argv?: string[];
+    resolveModule?: (() => string) | null;
+    openclawBin?: string;
+  } = {},
+): GatewayInvocation {
+  const cliEntryEnv = String(
+    options.cliEntryEnv ?? process.env.OPENCLAW_CLI_ENTRY ?? "",
+  ).trim();
+  if (isUsableCliPath(cliEntryEnv)) {
+    return {
+      command: process.execPath,
+      argsPrefix: [cliEntryEnv],
+    };
   }
-  cachedCliEntry = require.resolve("openclaw/cli-entry");
-  return cachedCliEntry;
+
+  const resolveModule =
+    options.resolveModule === undefined
+      ? () => require.resolve("openclaw/cli-entry")
+      : options.resolveModule;
+  if (resolveModule) {
+    try {
+      const resolved = String(resolveModule() || "").trim();
+      if (isUsableCliPath(resolved)) {
+        return {
+          command: process.execPath,
+          argsPrefix: [resolved],
+        };
+      }
+    } catch {
+      // Fall through to argv/PATH-based resolution for archive installs.
+    }
+  }
+
+  const argv = options.argv ?? process.argv;
+  const argvEntry = String(argv[1] || "").trim();
+  if (isUsableCliPath(argvEntry)) {
+    return {
+      command: process.execPath,
+      argsPrefix: [argvEntry],
+    };
+  }
+
+  return {
+    command: String(options.openclawBin || process.env.OPENCLAW_BIN || "openclaw").trim()
+      || "openclaw",
+    argsPrefix: [],
+  };
+}
+
+function getGatewayInvocation(): GatewayInvocation {
+  if (!cachedInvocation) {
+    cachedInvocation = resolveGatewayInvocation();
+  }
+  return cachedInvocation;
 }
 
 async function parseJsonOutput(stdout: string, stderr: string): Promise<unknown> {
@@ -40,12 +100,21 @@ export async function gatewayCall<T>(
   params: Record<string, unknown>,
   options: { expectFinal?: boolean } = {},
 ): Promise<T> {
-  const args = [resolveCliEntry(), "gateway", "call", method, "--json", "--timeout", String(gatewayTimeoutMs)];
+  const invocation = getGatewayInvocation();
+  const args = [
+    ...invocation.argsPrefix,
+    "gateway",
+    "call",
+    method,
+    "--json",
+    "--timeout",
+    String(gatewayTimeoutMs),
+  ];
   if (options.expectFinal) {
     args.push("--expect-final");
   }
   args.push("--params", JSON.stringify(params));
-  const result = await execFileAsync(process.execPath, args, {
+  const result = await execFileAsync(invocation.command, args, {
     maxBuffer: 8 * 1024 * 1024,
   });
   return (await parseJsonOutput(result.stdout, result.stderr)) as T;
