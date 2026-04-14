@@ -13,17 +13,21 @@ export class ChekApiClient {
     accessToken;
     constructor(params) {
         this.baseUrl = params.baseUrl.replace(/\/+$/, "");
-        this.accessToken = params.accessToken.trim();
+        this.accessToken = String(params.accessToken || "").trim();
     }
     async requestJson(path, options = {}) {
+        const headers = {};
+        if (this.accessToken) {
+            headers.Authorization = this.accessToken.startsWith("Bearer ")
+                ? this.accessToken
+                : `Bearer ${this.accessToken}`;
+        }
+        if (options.body !== undefined) {
+            headers["Content-Type"] = "application/json";
+        }
         const response = await fetch(`${this.baseUrl}${path}`, {
             method: options.method ?? "GET",
-            headers: {
-                Authorization: this.accessToken.startsWith("Bearer ")
-                    ? this.accessToken
-                    : `Bearer ${this.accessToken}`,
-                "Content-Type": "application/json",
-            },
+            headers,
             body: options.body === undefined ? undefined : JSON.stringify(options.body),
         });
         const rawText = await response.text();
@@ -46,6 +50,21 @@ export class ChekApiClient {
     }
     async probe() {
         await this.listPendingMentionTasks(1);
+    }
+    async createBrowserAuthSession(input) {
+        return await this.requestJson("/buddy/v1/openclaw/auth-sessions", {
+            method: "POST",
+            body: {
+                installId: input.installId,
+                deviceId: input.deviceId,
+                sessionKey: input.sessionKey,
+                metadata: input.metadata || {},
+            },
+        });
+    }
+    async pollBrowserAuthSession(sessionId, deviceCode) {
+        const query = new URLSearchParams({ deviceCode });
+        return await this.requestJson(`/buddy/v1/openclaw/auth-sessions/${sessionId}?${query.toString()}`);
     }
     async listPendingMentionTasks(pageSize = 20) {
         const query = new URLSearchParams({

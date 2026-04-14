@@ -2,7 +2,12 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 
 import { ChekApiClient, ChekApiError } from "./chek-api.js";
-import { isConfigured, resolveAccessToken } from "./config.js";
+import {
+  isConfigured,
+  parseConfig,
+  resolveAccessToken,
+  withConfigPatch,
+} from "./config.js";
 import {
   ensureSession,
   injectSessionNote,
@@ -16,10 +21,12 @@ import {
 } from "./render.js";
 import type {
   ControllerSnapshot,
+  BrowserAuthSession,
   MemorUploadConfig,
   MentionTask,
   ProcessedTaskResult,
 } from "./types.js";
+import type { OpenClawPluginApi } from "./openclaw-types.js";
 
 type Logger = {
   debug?: (message: string) => void;
@@ -45,15 +52,21 @@ function summarizeError(error: unknown): string {
 export class MemorUploadController {
   private config: MemorUploadConfig;
   private readonly logger: Logger;
+  private readonly runtimeConfig: OpenClawPluginApi["runtime"]["config"];
   private readonly snapshot: ControllerSnapshot;
   private timer: NodeJS.Timeout | null = null;
   private polling = false;
   private stateDir: string | null = null;
   private started = false;
 
-  constructor(params: { config: MemorUploadConfig; logger: Logger }) {
+  constructor(params: {
+    config: MemorUploadConfig;
+    logger: Logger;
+    runtimeConfig: OpenClawPluginApi["runtime"]["config"];
+  }) {
     this.config = params.config;
     this.logger = params.logger;
+    this.runtimeConfig = params.runtimeConfig;
     this.snapshot = {
       running: false,
       configured: isConfigured(params.config),
@@ -61,6 +74,14 @@ export class MemorUploadController {
       pollIntervalMs: params.config.pollIntervalMs,
       sessionKey: params.config.sessionKey,
       accessTokenConfigured: Boolean(resolveAccessToken(params.config)),
+      installId: params.config.installId,
+      deviceId: params.config.deviceId,
+      authSessionId: params.config.authSessionId || null,
+      authorizationStatus: params.config.authorizationStatus || "",
+      authorizationUrl: params.config.authorizationUrl || null,
+      authorizedUserOneId: params.config.authorizedUserOneId || null,
+      authorizedDisplayName: params.config.authorizedDisplayName || null,
+      lastAuthorizedAt: params.config.lastAuthorizedAt || null,
       lastPollAt: null,
       lastSuccessAt: null,
       lastTaskAt: null,
@@ -75,6 +96,10 @@ export class MemorUploadController {
 
   getSnapshot(): ControllerSnapshot {
     return { ...this.snapshot };
+  }
+
+  getConfig(): MemorUploadConfig {
+    return { ...this.config };
   }
 
   async start(): Promise<void> {
@@ -101,6 +126,14 @@ export class MemorUploadController {
     this.snapshot.pollIntervalMs = config.pollIntervalMs;
     this.snapshot.sessionKey = config.sessionKey;
     this.snapshot.accessTokenConfigured = Boolean(resolveAccessToken(config));
+    this.snapshot.installId = config.installId;
+    this.snapshot.deviceId = config.deviceId;
+    this.snapshot.authSessionId = config.authSessionId || null;
+    this.snapshot.authorizationStatus = config.authorizationStatus || "";
+    this.snapshot.authorizationUrl = config.authorizationUrl || null;
+    this.snapshot.authorizedUserOneId = config.authorizedUserOneId || null;
+    this.snapshot.authorizedDisplayName = config.authorizedDisplayName || null;
+    this.snapshot.lastAuthorizedAt = config.lastAuthorizedAt || null;
     this.snapshot.lastError = null;
     await this.persistSnapshot();
     if (this.started) {
@@ -108,8 +141,74 @@ export class MemorUploadController {
     }
   }
 
+  async persistConfigPatch(patch: Partial<MemorUploadConfig>): Promise<MemorUploadConfig> {
+    const currentConfig = this.runtimeConfig.loadConfig();
+    const plugins = (currentConfig.plugins ?? {}) as Record<string, unknown>;
+    const entries =
+      plugins.entries && typeof plugins.entries === "object" && !Array.isArray(plugins.entries)
+        ? ({ ...(plugins.entries as Record<string, unknown>) } as Record<string, unknown>)
+        : {};
+    const existingEntry =
+      entries["memor-upload"] && typeof entries["memor-upload"] === "object"
+        ? (entries["memor-upload"] as Record<string, unknown>)
+        : {};
+    const existingPluginConfig = parseConfig(existingEntry.config);
+    const nextPluginConfig = withConfigPatch(existingPluginConfig, patch);
+
+    entries["memor-upload"] = {
+      ...existingEntry,
+      enabled: nextPluginConfig.enabled,
+      config: nextPluginConfig,
+    };
+
+    await this.runtimeConfig.writeConfigFile({
+      ...currentConfig,
+      plugins: {
+        ...plugins,
+        entries,
+      },
+    });
+    await this.updateConfig(nextPluginConfig);
+    return nextPluginConfig;
+  }
+
+  async syncAuthorizationSession(): Promise<BrowserAuthSession | null> {
+    const authSessionId = this.config.authSessionId.trim();
+    const deviceCode = this.config.deviceCode.trim();
+    if (!authSessionId || !deviceCode) {
+      return null;
+    }
+    const api = new ChekApiClient({
+      baseUrl: this.config.backendAppBaseUrl,
+    });
+    const session = await api.pollBrowserAuthSession(authSessionId, deviceCode);
+    const patch: Partial<MemorUploadConfig> = {
+      authorizationStatus: String(
+        session.authorizationStatus || session.status || this.config.authorizationStatus,
+      ).trim(),
+      authorizationUrl: String(session.authorizationUrl || this.config.authorizationUrl || "").trim(),
+      authorizedUserOneId: String(
+        session.authorizedUserOneId || this.config.authorizedUserOneId || "",
+      ).trim(),
+      authorizedDisplayName: String(
+        session.authorizedDisplayName || this.config.authorizedDisplayName || "",
+      ).trim(),
+      lastAuthorizedAt: String(session.authorizedAt || this.config.lastAuthorizedAt || "").trim(),
+    };
+    const pluginAccessToken = String(session.pluginAccessToken || "").trim();
+    if (pluginAccessToken) {
+      patch.accessToken = pluginAccessToken;
+    }
+    await this.persistConfigPatch(patch);
+    return session;
+  }
+
   async runHealthCheck(): Promise<{ backend: string; gateway: string }> {
-    const accessToken = resolveAccessToken(this.config);
+    let accessToken = resolveAccessToken(this.config);
+    if (!accessToken && this.config.authSessionId.trim() && this.config.deviceCode.trim()) {
+      await this.syncAuthorizationSession();
+      accessToken = resolveAccessToken(this.config);
+    }
     if (!accessToken) {
       throw new Error("CHEK access token is not configured.");
     }
@@ -160,11 +259,33 @@ export class MemorUploadController {
     if (!this.config.enabled) {
       return;
     }
-    const accessToken = resolveAccessToken(this.config);
+    let accessToken = resolveAccessToken(this.config);
     if (!accessToken) {
-      this.snapshot.lastError = "CHEK access token is not configured.";
-      await this.persistSnapshot();
-      return;
+      if (this.config.authSessionId.trim() && this.config.deviceCode.trim()) {
+        try {
+          const session = await this.syncAuthorizationSession();
+          const sessionStatus = String(session?.authorizationStatus || session?.status || "").trim();
+          if (String(session?.pluginAccessToken || "").trim()) {
+            this.snapshot.lastSuccessAt = nowIso();
+            this.snapshot.lastError = null;
+            accessToken = resolveAccessToken(this.config);
+          } else if (sessionStatus === "pending") {
+            this.snapshot.lastError = "Waiting for browser authorization.";
+          } else if (sessionStatus) {
+            this.snapshot.lastError = `Browser authorization status: ${sessionStatus}`;
+          } else {
+            this.snapshot.lastError = "CHEK browser authorization has not completed yet.";
+          }
+        } catch (error) {
+          this.snapshot.lastError = summarizeError(error);
+        }
+      } else {
+        this.snapshot.lastError = "CHEK access token is not configured.";
+      }
+      if (!accessToken) {
+        await this.persistSnapshot();
+        return;
+      }
     }
 
     const api = new ChekApiClient({

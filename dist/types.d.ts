@@ -31,6 +31,15 @@ export type MemorUploadConfig = {
     accessToken: string;
     pollIntervalMs: number;
     sessionKey: string;
+    installId: string;
+    deviceId: string;
+    authSessionId: string;
+    deviceCode: string;
+    authorizationStatus: string;
+    authorizationUrl: string;
+    authorizedUserOneId: string;
+    authorizedDisplayName: string;
+    lastAuthorizedAt: string;
 };
 export type ControllerSnapshot = {
     running: boolean;
@@ -39,11 +48,37 @@ export type ControllerSnapshot = {
     pollIntervalMs: number;
     sessionKey: string;
     accessTokenConfigured: boolean;
+    installId: string;
+    deviceId: string;
+    authSessionId: string | null;
+    authorizationStatus: string;
+    authorizationUrl: string | null;
+    authorizedUserOneId: string | null;
+    authorizedDisplayName: string | null;
+    lastAuthorizedAt: string | null;
     lastPollAt: string | null;
     lastSuccessAt: string | null;
     lastTaskAt: string | null;
     lastTaskId: string | null;
     lastError: string | null;
+};
+export type BrowserAuthSession = {
+    id: string;
+    installId?: string | null;
+    deviceId?: string | null;
+    sessionKey?: string | null;
+    deviceCode?: string | null;
+    status: string;
+    authorizationStatus?: string | null;
+    authorizationUrl?: string | null;
+    pollIntervalMs?: number | null;
+    expiresAt?: string | null;
+    authorizedUserOneId?: string | null;
+    authorizedDisplayName?: string | null;
+    authorizedAvatarUrl?: string | null;
+    authorizedAt?: string | null;
+    lastPolledAt?: string | null;
+    pluginAccessToken?: string | null;
 };
 export type SessionPatchEntry = {
     sessionId?: string;

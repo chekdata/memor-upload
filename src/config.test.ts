@@ -15,6 +15,8 @@ describe("memor-upload config", () => {
     expect(config.pollIntervalMs).toBe(DEFAULT_POLL_INTERVAL_MS);
     expect(config.sessionKey).toBe(DEFAULT_SESSION_KEY);
     expect(config.enabled).toBe(true);
+    expect(config.installId).toBe("");
+    expect(config.authorizationStatus).toBe("");
   });
 
   it("normalizes backend url shorthands", () => {

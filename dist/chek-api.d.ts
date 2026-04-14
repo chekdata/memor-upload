@@ -1,4 +1,4 @@
-import type { JsonObject, MentionTask } from "./types.js";
+import type { BrowserAuthSession, JsonObject, MentionTask } from "./types.js";
 export declare class ChekApiError extends Error {
     status: number;
     body: unknown;
@@ -9,10 +9,17 @@ export declare class ChekApiClient {
     private readonly accessToken;
     constructor(params: {
         baseUrl: string;
-        accessToken: string;
+        accessToken?: string;
     });
     private requestJson;
     probe(): Promise<void>;
+    createBrowserAuthSession(input: {
+        installId: string;
+        deviceId: string;
+        sessionKey: string;
+        metadata?: JsonObject;
+    }): Promise<BrowserAuthSession>;
+    pollBrowserAuthSession(sessionId: string, deviceCode: string): Promise<BrowserAuthSession>;
     listPendingMentionTasks(pageSize?: number): Promise<MentionTask[]>;
     claimMentionTask(taskId: string): Promise<MentionTask>;
     completeMentionTask(taskId: string, result: JsonObject): Promise<MentionTask>;

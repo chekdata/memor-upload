@@ -2,7 +2,7 @@
   "id": "memor-upload",
   "name": "MEMOR Upload",
   "description": "Bridge CHEK buddy-room @ mentions into OpenClaw and auto-reply from a stable local session.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "skills": [
     "./skills"
   ],
@@ -28,6 +28,33 @@
       "sessionKey": {
         "type": "string",
         "minLength": 1
+      },
+      "installId": {
+        "type": "string"
+      },
+      "deviceId": {
+        "type": "string"
+      },
+      "authSessionId": {
+        "type": "string"
+      },
+      "deviceCode": {
+        "type": "string"
+      },
+      "authorizationStatus": {
+        "type": "string"
+      },
+      "authorizationUrl": {
+        "type": "string"
+      },
+      "authorizedUserOneId": {
+        "type": "string"
+      },
+      "authorizedDisplayName": {
+        "type": "string"
+      },
+      "lastAuthorizedAt": {
+        "type": "string"
       }
     }
   },
@@ -50,6 +77,33 @@
     "sessionKey": {
       "label": "OpenClaw Session Key",
       "placeholder": "agent:main:chek:mentions"
+    },
+    "installId": {
+      "label": "Install ID"
+    },
+    "deviceId": {
+      "label": "Device ID"
+    },
+    "authSessionId": {
+      "label": "Auth Session ID"
+    },
+    "deviceCode": {
+      "label": "Device Code"
+    },
+    "authorizationStatus": {
+      "label": "Authorization Status"
+    },
+    "authorizationUrl": {
+      "label": "Authorization URL"
+    },
+    "authorizedUserOneId": {
+      "label": "Authorized User One ID"
+    },
+    "authorizedDisplayName": {
+      "label": "Authorized User"
+    },
+    "lastAuthorizedAt": {
+      "label": "Last Authorized At"
     }
   }
 }

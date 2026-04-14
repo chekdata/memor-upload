@@ -26,6 +26,33 @@ export declare const CONFIG_JSON_SCHEMA: {
             readonly type: "string";
             readonly minLength: 1;
         };
+        readonly installId: {
+            readonly type: "string";
+        };
+        readonly deviceId: {
+            readonly type: "string";
+        };
+        readonly authSessionId: {
+            readonly type: "string";
+        };
+        readonly deviceCode: {
+            readonly type: "string";
+        };
+        readonly authorizationStatus: {
+            readonly type: "string";
+        };
+        readonly authorizationUrl: {
+            readonly type: "string";
+        };
+        readonly authorizedUserOneId: {
+            readonly type: "string";
+        };
+        readonly authorizedDisplayName: {
+            readonly type: "string";
+        };
+        readonly lastAuthorizedAt: {
+            readonly type: "string";
+        };
     };
 };
 export declare const CONFIG_UI_HINTS: {
@@ -47,6 +74,33 @@ export declare const CONFIG_UI_HINTS: {
     readonly sessionKey: {
         readonly label: "OpenClaw Session Key";
         readonly placeholder: "agent:main:chek:mentions";
+    };
+    readonly installId: {
+        readonly label: "Install ID";
+    };
+    readonly deviceId: {
+        readonly label: "Device ID";
+    };
+    readonly authSessionId: {
+        readonly label: "Auth Session ID";
+    };
+    readonly deviceCode: {
+        readonly label: "Device Code";
+    };
+    readonly authorizationStatus: {
+        readonly label: "Authorization Status";
+    };
+    readonly authorizationUrl: {
+        readonly label: "Authorization URL";
+    };
+    readonly authorizedUserOneId: {
+        readonly label: "Authorized User One ID";
+    };
+    readonly authorizedDisplayName: {
+        readonly label: "Authorized User";
+    };
+    readonly lastAuthorizedAt: {
+        readonly label: "Last Authorized At";
     };
 };
 export declare function normalizeBackendAppBaseUrl(value: string): string;

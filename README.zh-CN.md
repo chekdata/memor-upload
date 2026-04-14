@@ -1,7 +1,7 @@
 # MEMOR Upload
 
 ![joined](https://img.shields.io/github/downloads/chekdata/memor-upload/total?label=joined)
-![phase](https://img.shields.io/badge/phase-1%20live-0A7D34)
+![phase](https://img.shields.io/badge/phase-2%20live-0A7D34)
 ![license](https://img.shields.io/github/license/chekdata/memor-upload)
 
 `MEMOR Upload` 是一个关于赛博永生、意识延续、电子居民的公开 OpenClaw 插件项目。
@@ -32,19 +32,34 @@
 
 ## 当前授权口径
 
-当前 Phase 1 按照后端已经存在的能力如实实现：
+现在已经不是“只有 token setup”的阶段了。
 
-- 当前 setup 用 CHEK access token 完成
-- 浏览器 device-code 授权已经写入文档，但还没有后端能力承接
-- 仓库不会假装后端已经有 OAuth / device-binding API
+当前仓库已经有真实可跑的浏览器授权链路：
 
-所以现在的真实 setup 方式是：
+- `/chek-setup` 会自动拉起浏览器
+- 浏览器页会读取当前 CHEK 登录态，并把它绑定到这台 OpenClaw 设备
+- 插件会轮询授权状态，并把 plugin-scoped access token 落到本地配置
+- 授权完成后，后台 mention-task service 就可以直接开始
+
+token setup 仍然保留，但只作为浏览器授权失败时的兜底方式。
+
+默认 setup 方式：
+
+```text
+/chek-setup
+```
+
+或者：
+
+```bash
+openclaw chek setup
+```
+
+浏览器授权失败时的兜底方式：
 
 ```text
 /chek-setup token=<CHEK_ACCESS_TOKEN>
 ```
-
-或者：
 
 ```bash
 openclaw chek setup --token <CHEK_ACCESS_TOKEN>
@@ -66,7 +81,7 @@ openclaw plugins install 'https://github.com/chekdata/memor-upload/archive/refs/
 
 当前文档默认使用 GitHub archive 安装，是因为这才是我们已经在 OpenClaw 里真实验证通过的公开分发口径。
 
-同时，仓库也已经发布了 [v0.1.0 release](https://github.com/chekdata/memor-upload/releases/tag/v0.1.0)，方便做版本化下载和 release 维度的下载统计。
+仓库也保留 GitHub release 作为版本化下载与统计入口；这次浏览器授权版本会对应新的 `v0.2.0` release。
 
 本地开发联调：
 
@@ -79,20 +94,19 @@ openclaw plugins install --link /absolute/path/to/memor-upload
 在 OpenClaw 对话里执行：
 
 ```text
-/chek-setup token=<CHEK_ACCESS_TOKEN>
+/chek-setup
 ```
 
 在命令行里执行：
 
 ```bash
-openclaw chek setup --token <CHEK_ACCESS_TOKEN>
+openclaw chek setup
 ```
 
 常用可选项：
 
 ```bash
 openclaw chek setup \
-  --token <CHEK_ACCESS_TOKEN> \
   --backend https://api-dev.chekkk.com/api/backend-app \
   --session agent:main:chek:mentions \
   --interval 5000
@@ -115,12 +129,34 @@ openclaw chek bootstrap
 当前仓库的标准 bootstrap message 是：
 
 ```text
-download & read https://github.com/chekdata/memor-upload/blob/main/skills/chek-setup/SKILL.md
+请在这台机器上安装并配置 CHEK 房间助手插件，并尽量自动完成初始化。
+
+目标：
+1. 安装 OpenClaw 插件 MEMOR Upload
+2. 安装后重启 Gateway
+3. 自动拉起浏览器完成 CHEK 授权与设备绑定
+4. 做一次连通性测试
+5. 最后告诉我当前状态是否 ready
+
+安装命令：
 openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1
-/chek-setup
+
+如果插件安装成功但不能自动继续，请立即执行 `/chek-setup`。插件会自动打开浏览器到 CHEK 授权页；浏览器显示“已授权，可返回 OpenClaw”后，回到本地继续等待健康检查完成。
+如果浏览器授权失败，再退回 `/chek-setup token=<CHEK_ACCESS_TOKEN>` 或 `openclaw chek setup --token <CHEK_ACCESS_TOKEN>`。
+
+参考链接：
+- 插件说明：https://github.com/chekdata/memor-upload#readme
+- setup skill：https://github.com/chekdata/memor-upload/blob/main/skills/chek-setup/SKILL.md
+- 浏览器授权说明：https://github.com/chekdata/memor-upload/blob/main/docs/device-code-auth.md
+- 排障说明：https://github.com/chekdata/memor-upload/blob/main/docs/troubleshooting.md
+
+执行要求：
+- 如果可以直接执行宿主机命令，就直接完成
+- 如果某一步需要我人工确认，只在那一步向我索取最小必要信息
+- 如果无法执行，不要假装成功；请明确说明失败原因、卡住步骤，以及下一条我应该发你的消息
 ```
 
-当前 Phase 1 里，`/chek-setup` 会继续提示用户完成 token 配置。真正“自动拉起浏览器并回到已授权”的 device-code 流程已经单独写入文档，但不会在没有后端支撑时被伪装成已完成。
+这条消息现在就是产品主入口本身，不是“先读文档再自己研究”的辅助说明。浏览器授权已经是默认 setup 主路径，token setup 则保留为明确的兜底回退。
 
 ## 仓库结构
 
@@ -129,7 +165,7 @@ openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/h
 - `src/commands.ts`：`/chek-setup`、`/chek-status`、`/chek-bootstrap` 和 CLI 命令
 - `skills/chek-setup/SKILL.md`：随插件一起发的 setup skill
 - `docs/bootstrap-message.md`：面向用户的一段式引导文案
-- `docs/device-code-auth.md`：Phase 2 的 device-code 方案
+- `docs/device-code-auth.md`：当前可用的浏览器授权链路和 fallback 规则
 - `docs/troubleshooting.md`：排障说明
 
 ## 开发

@@ -1,6 +1,6 @@
 {
   "name": "@chek/memor-upload",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MEMOR Upload for OpenClaw: bridge CHEK buddy room @ mentions into a local OpenClaw session and auto-reply.",
   "type": "module",
   "license": "MIT",

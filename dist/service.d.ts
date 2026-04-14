@@ -1,4 +1,5 @@
-import type { ControllerSnapshot, MemorUploadConfig } from "./types.js";
+import type { ControllerSnapshot, BrowserAuthSession, MemorUploadConfig } from "./types.js";
+import type { OpenClawPluginApi } from "./openclaw-types.js";
 type Logger = {
     debug?: (message: string) => void;
     info: (message: string) => void;
@@ -8,6 +9,7 @@ type Logger = {
 export declare class MemorUploadController {
     private config;
     private readonly logger;
+    private readonly runtimeConfig;
     private readonly snapshot;
     private timer;
     private polling;
@@ -16,12 +18,16 @@ export declare class MemorUploadController {
     constructor(params: {
         config: MemorUploadConfig;
         logger: Logger;
+        runtimeConfig: OpenClawPluginApi["runtime"]["config"];
     });
     attachStateDir(stateDir: string): void;
     getSnapshot(): ControllerSnapshot;
+    getConfig(): MemorUploadConfig;
     start(): Promise<void>;
     stop(): Promise<void>;
     updateConfig(config: MemorUploadConfig): Promise<void>;
+    persistConfigPatch(patch: Partial<MemorUploadConfig>): Promise<MemorUploadConfig>;
+    syncAuthorizationSession(): Promise<BrowserAuthSession | null>;
     runHealthCheck(): Promise<{
         backend: string;
         gateway: string;

@@ -25,6 +25,7 @@ const memorUploadPlugin = {
     const controller = new MemorUploadController({
       config,
       logger: api.logger,
+      runtimeConfig: api.runtime.config,
     });
 
     registerMemorUploadCommands(api, controller);

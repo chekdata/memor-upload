@@ -14,6 +14,15 @@ export const CONFIG_JSON_SCHEMA = {
     accessToken: { type: "string" },
     pollIntervalMs: { type: "integer", minimum: 2_000, maximum: 60_000 },
     sessionKey: { type: "string", minLength: 1 },
+    installId: { type: "string" },
+    deviceId: { type: "string" },
+    authSessionId: { type: "string" },
+    deviceCode: { type: "string" },
+    authorizationStatus: { type: "string" },
+    authorizationUrl: { type: "string" },
+    authorizedUserOneId: { type: "string" },
+    authorizedDisplayName: { type: "string" },
+    lastAuthorizedAt: { type: "string" },
   },
 } as const;
 
@@ -33,6 +42,15 @@ export const CONFIG_UI_HINTS = {
     label: "OpenClaw Session Key",
     placeholder: DEFAULT_SESSION_KEY,
   },
+  installId: { label: "Install ID" },
+  deviceId: { label: "Device ID" },
+  authSessionId: { label: "Auth Session ID" },
+  deviceCode: { label: "Device Code" },
+  authorizationStatus: { label: "Authorization Status" },
+  authorizationUrl: { label: "Authorization URL" },
+  authorizedUserOneId: { label: "Authorized User One ID" },
+  authorizedDisplayName: { label: "Authorized User" },
+  lastAuthorizedAt: { label: "Last Authorized At" },
 } as const;
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -108,6 +126,15 @@ export function parseConfig(value: unknown): MemorUploadConfig {
       60_000,
     ),
     sessionKey: readString(record, "sessionKey", DEFAULT_SESSION_KEY) || DEFAULT_SESSION_KEY,
+    installId: readString(record, "installId"),
+    deviceId: readString(record, "deviceId"),
+    authSessionId: readString(record, "authSessionId"),
+    deviceCode: readString(record, "deviceCode"),
+    authorizationStatus: readString(record, "authorizationStatus"),
+    authorizationUrl: readString(record, "authorizationUrl"),
+    authorizedUserOneId: readString(record, "authorizedUserOneId"),
+    authorizedDisplayName: readString(record, "authorizedDisplayName"),
+    lastAuthorizedAt: readString(record, "lastAuthorizedAt"),
   };
 }
 

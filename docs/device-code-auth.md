@@ -1,40 +1,54 @@
-# MEMOR Upload Device-Code Auth
+# MEMOR Upload Browser Auth
 
-## 状态
+## Current Reality
 
-这是规划中的 Phase 2 方案，不是当前仓库已经实现的能力。
+This flow is now implemented.
 
-当前仓库真实可用的是：
+`MEMOR Upload` no longer depends on token-only setup as the primary path. The default setup path is:
 
-- token-based setup
-- 本地轮询 mention task
-- 本地 OpenClaw 会话注入
-- 自动回复回房间
+1. install the plugin
+2. run `/chek-setup` or `openclaw chek setup`
+3. let the plugin open the CHEK authorization page in the browser
+4. authorize with the current CHEK login state
+5. let the plugin poll the auth session and persist a plugin-scoped access token
 
-## 目标
+## What the Browser Page Does
 
-未来希望把当前 setup 升级成真正的浏览器授权链路：
+The authorization page is served from the CHEK app origin and:
 
-1. 用户执行：
+- reads the current browser login token
+- posts it back to `backend-app`
+- marks the auth session as `authorized`
+- issues a plugin-scoped access token for this install and device
+- shows `已授权，可返回 OpenClaw`
 
-```bash
-openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1
+## What the Plugin Persists
+
+After a successful browser authorization, the plugin stores:
+
+- `installId`
+- `deviceId`
+- `authSessionId`
+- `deviceCode`
+- `authorizationStatus`
+- `authorizationUrl`
+- `authorizedUserOneId`
+- `authorizedDisplayName`
+- `lastAuthorizedAt`
+- `accessToken`
+
+The stored `accessToken` is the plugin-scoped token returned by `backend-app`, not the raw frontend browser token.
+
+## Fallback Path
+
+If browser auth cannot complete, token setup still works:
+
+```text
+/chek-setup token=<CHEK_ACCESS_TOKEN>
 ```
 
-2. 插件或 `/chek-setup` 自动拉起浏览器
-3. 浏览器进入 CHEK 授权页
-4. 用户确认授权
-5. 浏览器显示“已授权，可返回 OpenClaw”
-6. 插件轮询授权状态并落盘
-7. 后台 mention-task service 自动开始
+```bash
+openclaw chek setup --token <CHEK_ACCESS_TOKEN>
+```
 
-## 需要后端补齐的能力
-
-至少需要下面几类接口之一：
-
-- device-code 授权挑战创建
-- 授权状态轮询
-- 授权成功后的 device binding
-- 插件 / 设备级 access token 或 refresh token 发放
-
-在后端没有这些接口前，插件不会伪装自己已经具备 device-code 能力。
+This fallback exists so setup can continue even when browser auto-open, browser login state, or auth-session polling is unavailable.
