@@ -1,8 +1,20 @@
-import type { ChatFinalPayload, MentionTask } from "./types.js";
+import type { BuddyRoomMessage, ChatFinalPayload, MentionTask, ReplyIntent } from "./types.js";
 export declare const CURRENT_INSTALL_SPEC = "https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1";
+type ReplyStrategy = {
+    intent: ReplyIntent;
+    directReply: string | null;
+    guidance: string;
+    summary: string;
+};
 export declare function sanitizeModelReplyText(value: string): string;
-export declare function buildTaskInjectionText(task: MentionTask): string;
-export declare function buildAutoReplyPrompt(task: MentionTask): string;
-export declare function buildFallbackReply(task: MentionTask): string;
+export declare function buildRoomSessionKey(baseSessionKey: string, postId: string): string;
+export declare function buildRoomSessionLabel(task: MentionTask): string;
+export declare function selectRoomMessagesForContext(task: MentionTask, roomMessages: BuddyRoomMessage[]): BuddyRoomMessage[];
+export declare function detectReplyIntent(task: MentionTask, roomMessages?: BuddyRoomMessage[]): ReplyIntent;
+export declare function buildReplyStrategy(task: MentionTask, roomMessages?: BuddyRoomMessage[]): ReplyStrategy;
+export declare function buildTaskInjectionText(task: MentionTask, roomMessages?: BuddyRoomMessage[]): string;
+export declare function buildAutoReplyPrompt(task: MentionTask, roomMessages?: BuddyRoomMessage[]): string;
+export declare function buildFallbackReply(task: MentionTask, roomMessages?: BuddyRoomMessage[]): string;
 export declare function extractChatReplyText(payload: ChatFinalPayload): string;
 export declare function buildBootstrapMessage(): string;
+export {};

@@ -16,10 +16,15 @@ import {
 import {
   buildAutoReplyPrompt,
   buildFallbackReply,
+  buildReplyStrategy,
+  buildRoomSessionKey,
+  buildRoomSessionLabel,
   buildTaskInjectionText,
   extractChatReplyText,
+  selectRoomMessagesForContext,
 } from "./render.js";
 import type {
+  BuddyRoomMessage,
   ControllerSnapshot,
   BrowserAuthSession,
   MemorUploadConfig,
@@ -37,6 +42,7 @@ type Logger = {
 
 const SESSION_LABEL = "CHEK Mentions";
 const STATUS_FILE_NAME = "memor-upload-status.json";
+const ROOM_CONTEXT_PAGE_SIZE = 100;
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -224,8 +230,12 @@ export class MemorUploadController {
     };
   }
 
-  private injectSessionNoteBestEffort(message: string, label: string): void {
-    void injectSessionNote(this.config.sessionKey, message, label).catch((error) => {
+  private injectSessionNoteForKeyBestEffort(
+    sessionKey: string,
+    message: string,
+    label: string,
+  ): void {
+    void injectSessionNote(sessionKey, message, label).catch((error) => {
       this.logger.warn(
         `[memor-upload] failed to inject ${label} note: ${summarizeError(error)}`,
       );
@@ -317,6 +327,11 @@ export class MemorUploadController {
 
   private async processTask(api: ChekApiClient, task: MentionTask): Promise<void> {
     let claimedTask: MentionTask | null = null;
+    const postId = String(task.payload.postId || task.postId || "").trim();
+    const taskSessionKey = postId
+      ? buildRoomSessionKey(this.config.sessionKey, postId)
+      : this.config.sessionKey;
+    const taskSessionLabel = postId ? buildRoomSessionLabel(task) : SESSION_LABEL;
     try {
       claimedTask = await api.claimMentionTask(task.id);
     } catch (error) {
@@ -327,26 +342,32 @@ export class MemorUploadController {
     }
 
     try {
-      const postId = String(task.payload.postId || task.postId || "").trim();
       if (!postId) {
         throw new Error(`Task ${task.id} is missing postId.`);
       }
 
-      await ensureSession(this.config.sessionKey, SESSION_LABEL);
-      this.injectSessionNoteBestEffort(buildTaskInjectionText(task), "CHEK @");
+      const roomMessages = await this.loadRoomMessages(api, task, postId);
+      await ensureSession(taskSessionKey, taskSessionLabel);
+      this.injectSessionNoteForKeyBestEffort(
+        taskSessionKey,
+        buildTaskInjectionText(task, roomMessages),
+        "CHEK @",
+      );
 
-      const processed = await this.generateReply(task);
+      const processed = await this.generateReply(task, roomMessages, taskSessionKey);
       await api.sendRoomMessage(postId, processed.reply);
       await api.completeMentionTask(task.id, {
         reply: processed.reply,
         mode: processed.mode,
         sessionKey: processed.sessionKey,
+        intent: processed.intent,
       });
 
       this.snapshot.lastTaskAt = nowIso();
       this.snapshot.lastTaskId = task.id;
       this.snapshot.lastSuccessAt = nowIso();
-      this.injectSessionNoteBestEffort(
+      this.injectSessionNoteForKeyBestEffort(
+        taskSessionKey,
         `已自动回复到《${task.payload.postTitle || postId}》：${processed.reply}`,
         "CHEK 已发送",
       );
@@ -355,12 +376,12 @@ export class MemorUploadController {
       const reason = summarizeError(error);
       this.snapshot.lastError = reason;
       await this.persistSnapshot();
-      this.injectSessionNoteBestEffort(`自动回复失败：${reason}`, "CHEK 失败");
+      this.injectSessionNoteForKeyBestEffort(taskSessionKey, `自动回复失败：${reason}`, "CHEK 失败");
       if (claimedTask) {
         try {
           await api.failMentionTask(task.id, {
             error: reason,
-            sessionKey: this.config.sessionKey,
+            sessionKey: taskSessionKey,
           });
         } catch (failError) {
           this.logger.error(
@@ -371,10 +392,40 @@ export class MemorUploadController {
     }
   }
 
-  private async generateReply(task: MentionTask): Promise<ProcessedTaskResult> {
-    const prompt = buildAutoReplyPrompt(task);
+  private async loadRoomMessages(
+    api: ChekApiClient,
+    task: MentionTask,
+    postId: string,
+  ): Promise<BuddyRoomMessage[]> {
     try {
-      const result = await sendChatPrompt(this.config.sessionKey, prompt);
+      const messages = await api.listRoomMessages(postId, ROOM_CONTEXT_PAGE_SIZE);
+      return selectRoomMessagesForContext(task, messages);
+    } catch (error) {
+      this.logger.warn(
+        `[memor-upload] failed to load room context for ${postId}: ${summarizeError(error)}`,
+      );
+      return selectRoomMessagesForContext(task, []);
+    }
+  }
+
+  private async generateReply(
+    task: MentionTask,
+    roomMessages: BuddyRoomMessage[],
+    sessionKey: string,
+  ): Promise<ProcessedTaskResult> {
+    const strategy = buildReplyStrategy(task, roomMessages);
+    if (strategy.directReply) {
+      return {
+        reply: strategy.directReply,
+        mode: "strategy",
+        sessionKey,
+        intent: strategy.intent,
+      };
+    }
+
+    const prompt = buildAutoReplyPrompt(task, roomMessages);
+    try {
+      const result = await sendChatPrompt(sessionKey, prompt);
       const reply = extractChatReplyText(result);
       if (!reply) {
         throw new Error("OpenClaw returned an empty reply.");
@@ -382,18 +433,21 @@ export class MemorUploadController {
       return {
         reply,
         mode: "model",
-        sessionKey: this.config.sessionKey,
+        sessionKey,
+        intent: strategy.intent,
       };
     } catch (error) {
-      const fallbackReply = buildFallbackReply(task);
-      this.injectSessionNoteBestEffort(
+      const fallbackReply = buildFallbackReply(task, roomMessages);
+      this.injectSessionNoteForKeyBestEffort(
+        sessionKey,
         `本地模型生成失败，已使用兜底回复：${summarizeError(error)}`,
         "CHEK 兜底",
       );
       return {
         reply: fallbackReply,
         mode: "fallback",
-        sessionKey: this.config.sessionKey,
+        sessionKey,
+        intent: strategy.intent,
       };
     }
   }

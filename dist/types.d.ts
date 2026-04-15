@@ -11,6 +11,15 @@ export type MentionTaskPayload = {
     mentionedDisplayName?: string;
     autoReply?: boolean;
 };
+export type BuddyRoomMessage = {
+    id: string;
+    kind?: string | null;
+    content?: string | null;
+    createdAt?: string | null;
+    userOneId?: string | null;
+    displayName?: string | null;
+    avatarUrl?: string | null;
+};
 export type MentionTask = {
     id: string;
     userOneId?: string | null;
@@ -99,8 +108,10 @@ export type ChatFinalPayload = {
         }>;
     };
 };
+export type ReplyIntent = "generic" | "posting_copy" | "listing_readiness" | "value_judgement" | "appeal_judgement" | "clarity_judgement" | "download_troubleshoot" | "distribution_choice";
 export type ProcessedTaskResult = {
     reply: string;
-    mode: "model" | "fallback";
+    mode: "model" | "strategy" | "fallback";
     sessionKey: string;
+    intent: ReplyIntent;
 };

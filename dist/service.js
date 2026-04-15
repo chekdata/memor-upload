@@ -3,9 +3,10 @@ import path from "node:path";
 import { ChekApiClient, ChekApiError } from "./chek-api.js";
 import { isConfigured, parseConfig, resolveAccessToken, withConfigPatch, } from "./config.js";
 import { ensureSession, injectSessionNote, sendChatPrompt, } from "./gateway-cli.js";
-import { buildAutoReplyPrompt, buildFallbackReply, buildTaskInjectionText, extractChatReplyText, } from "./render.js";
+import { buildAutoReplyPrompt, buildFallbackReply, buildReplyStrategy, buildRoomSessionKey, buildRoomSessionLabel, buildTaskInjectionText, extractChatReplyText, selectRoomMessagesForContext, } from "./render.js";
 const SESSION_LABEL = "CHEK Mentions";
 const STATUS_FILE_NAME = "memor-upload-status.json";
+const ROOM_CONTEXT_PAGE_SIZE = 100;
 function nowIso() {
     return new Date().toISOString();
 }
@@ -165,8 +166,8 @@ export class MemorUploadController {
             gateway: "ok",
         };
     }
-    injectSessionNoteBestEffort(message, label) {
-        void injectSessionNote(this.config.sessionKey, message, label).catch((error) => {
+    injectSessionNoteForKeyBestEffort(sessionKey, message, label) {
+        void injectSessionNote(sessionKey, message, label).catch((error) => {
             this.logger.warn(`[memor-upload] failed to inject ${label} note: ${summarizeError(error)}`);
         });
     }
@@ -256,6 +257,11 @@ export class MemorUploadController {
     }
     async processTask(api, task) {
         let claimedTask = null;
+        const postId = String(task.payload.postId || task.postId || "").trim();
+        const taskSessionKey = postId
+            ? buildRoomSessionKey(this.config.sessionKey, postId)
+            : this.config.sessionKey;
+        const taskSessionLabel = postId ? buildRoomSessionLabel(task) : SESSION_LABEL;
         try {
             claimedTask = await api.claimMentionTask(task.id);
         }
@@ -266,35 +272,36 @@ export class MemorUploadController {
             throw error;
         }
         try {
-            const postId = String(task.payload.postId || task.postId || "").trim();
             if (!postId) {
                 throw new Error(`Task ${task.id} is missing postId.`);
             }
-            await ensureSession(this.config.sessionKey, SESSION_LABEL);
-            this.injectSessionNoteBestEffort(buildTaskInjectionText(task), "CHEK @");
-            const processed = await this.generateReply(task);
+            const roomMessages = await this.loadRoomMessages(api, task, postId);
+            await ensureSession(taskSessionKey, taskSessionLabel);
+            this.injectSessionNoteForKeyBestEffort(taskSessionKey, buildTaskInjectionText(task, roomMessages), "CHEK @");
+            const processed = await this.generateReply(task, roomMessages, taskSessionKey);
             await api.sendRoomMessage(postId, processed.reply);
             await api.completeMentionTask(task.id, {
                 reply: processed.reply,
                 mode: processed.mode,
                 sessionKey: processed.sessionKey,
+                intent: processed.intent,
             });
             this.snapshot.lastTaskAt = nowIso();
             this.snapshot.lastTaskId = task.id;
             this.snapshot.lastSuccessAt = nowIso();
-            this.injectSessionNoteBestEffort(`已自动回复到《${task.payload.postTitle || postId}》：${processed.reply}`, "CHEK 已发送");
+            this.injectSessionNoteForKeyBestEffort(taskSessionKey, `已自动回复到《${task.payload.postTitle || postId}》：${processed.reply}`, "CHEK 已发送");
             await this.persistSnapshot();
         }
         catch (error) {
             const reason = summarizeError(error);
             this.snapshot.lastError = reason;
             await this.persistSnapshot();
-            this.injectSessionNoteBestEffort(`自动回复失败：${reason}`, "CHEK 失败");
+            this.injectSessionNoteForKeyBestEffort(taskSessionKey, `自动回复失败：${reason}`, "CHEK 失败");
             if (claimedTask) {
                 try {
                     await api.failMentionTask(task.id, {
                         error: reason,
-                        sessionKey: this.config.sessionKey,
+                        sessionKey: taskSessionKey,
                     });
                 }
                 catch (failError) {
@@ -303,10 +310,29 @@ export class MemorUploadController {
             }
         }
     }
-    async generateReply(task) {
-        const prompt = buildAutoReplyPrompt(task);
+    async loadRoomMessages(api, task, postId) {
         try {
-            const result = await sendChatPrompt(this.config.sessionKey, prompt);
+            const messages = await api.listRoomMessages(postId, ROOM_CONTEXT_PAGE_SIZE);
+            return selectRoomMessagesForContext(task, messages);
+        }
+        catch (error) {
+            this.logger.warn(`[memor-upload] failed to load room context for ${postId}: ${summarizeError(error)}`);
+            return selectRoomMessagesForContext(task, []);
+        }
+    }
+    async generateReply(task, roomMessages, sessionKey) {
+        const strategy = buildReplyStrategy(task, roomMessages);
+        if (strategy.directReply) {
+            return {
+                reply: strategy.directReply,
+                mode: "strategy",
+                sessionKey,
+                intent: strategy.intent,
+            };
+        }
+        const prompt = buildAutoReplyPrompt(task, roomMessages);
+        try {
+            const result = await sendChatPrompt(sessionKey, prompt);
             const reply = extractChatReplyText(result);
             if (!reply) {
                 throw new Error("OpenClaw returned an empty reply.");
@@ -314,16 +340,18 @@ export class MemorUploadController {
             return {
                 reply,
                 mode: "model",
-                sessionKey: this.config.sessionKey,
+                sessionKey,
+                intent: strategy.intent,
             };
         }
         catch (error) {
-            const fallbackReply = buildFallbackReply(task);
-            this.injectSessionNoteBestEffort(`本地模型生成失败，已使用兜底回复：${summarizeError(error)}`, "CHEK 兜底");
+            const fallbackReply = buildFallbackReply(task, roomMessages);
+            this.injectSessionNoteForKeyBestEffort(sessionKey, `本地模型生成失败，已使用兜底回复：${summarizeError(error)}`, "CHEK 兜底");
             return {
                 reply: fallbackReply,
                 mode: "fallback",
-                sessionKey: this.config.sessionKey,
+                sessionKey,
+                intent: strategy.intent,
             };
         }
     }

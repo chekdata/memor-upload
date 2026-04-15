@@ -74,6 +74,13 @@ export class ChekApiClient {
         const payload = await this.requestJson(`/buddy/v1/mention-tasks?${query.toString()}`);
         return Array.isArray(payload?.items) ? payload.items : [];
     }
+    async listRoomMessages(postId, pageSize = 100) {
+        const query = new URLSearchParams({
+            pageSize: String(Math.max(1, Math.min(pageSize, 100))),
+        });
+        const payload = await this.requestJson(`/buddy/v1/posts/${postId}/messages?${query.toString()}`);
+        return Array.isArray(payload?.items) ? payload.items : [];
+    }
     async claimMentionTask(taskId) {
         return await this.requestJson(`/buddy/v1/mention-tasks/${taskId}`, {
             method: "POST",

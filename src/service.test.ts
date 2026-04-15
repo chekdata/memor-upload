@@ -43,6 +43,7 @@ function createLogger() {
 describe("MemorUploadController", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.clearAllMocks();
   });
 
   it("persists browser authorization results into plugin config", async () => {
@@ -124,6 +125,7 @@ describe("MemorUploadController", () => {
     };
     const api = {
       claimMentionTask: vi.fn().mockResolvedValue(task),
+      listRoomMessages: vi.fn().mockResolvedValue([]),
       sendRoomMessage: vi.fn().mockResolvedValue({}),
       completeMentionTask: vi.fn().mockResolvedValue({ status: "completed" }),
       failMentionTask: vi.fn().mockResolvedValue({ status: "failed" }),
@@ -137,15 +139,77 @@ describe("MemorUploadController", () => {
       "task-1",
       expect.objectContaining({
         mode: "fallback",
-        sessionKey: "agent:main:chek:mentions",
+        sessionKey: "agent:main:chek:mentions:room:post-1",
+        intent: "generic",
       }),
     );
     expect(api.failMentionTask).not.toHaveBeenCalled();
     expect(api.sendRoomMessage).toHaveBeenCalledWith(
       "post-1",
-      "收到，我先看一下，稍后给你回复。",
+      "看到了。你可以直接补一句最想让我判断的点，我就按这条继续给你建议。",
     );
     expect(controller.getSnapshot().lastTaskId).toBe("task-1");
+    expect(gatewayCliMocks.ensureSession).toHaveBeenCalledWith(
+      "agent:main:chek:mentions:room:post-1",
+      "CHEK 房间 · Smoke Room · post-1",
+    );
+    expect(gatewayCliMocks.sendChatPrompt).toHaveBeenCalledWith(
+      "agent:main:chek:mentions:room:post-1",
+      expect.any(String),
+    );
     expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it("uses direct strategy replies for common publishing asks", async () => {
+    gatewayCliMocks.ensureSession.mockResolvedValue({});
+    gatewayCliMocks.injectSessionNote.mockResolvedValue(undefined);
+
+    const controller = new MemorUploadController({
+      config: parseConfig({
+        backendAppBaseUrl: "https://api-dev.chekkk.com/api/backend-app",
+        accessToken: "ckmu_test_token",
+        sessionKey: "agent:main:chek:mentions",
+      }),
+      logger: createLogger(),
+      runtimeConfig: createRuntimeConfig({
+        backendAppBaseUrl: "https://api-dev.chekkk.com/api/backend-app",
+        accessToken: "ckmu_test_token",
+        sessionKey: "agent:main:chek:mentions",
+      }),
+    });
+
+    const task = {
+      id: "task-2",
+      postId: "post-2",
+      payload: {
+        postId: "post-2",
+        postTitle: "动作模型交易",
+        messageContent: "@CHEK 用户 如果我想求购类似模型，房间里该怎么发更好？",
+        mentionedByDisplayName: "Buyer",
+      },
+    };
+    const api = {
+      claimMentionTask: vi.fn().mockResolvedValue(task),
+      listRoomMessages: vi.fn().mockResolvedValue([]),
+      sendRoomMessage: vi.fn().mockResolvedValue({}),
+      completeMentionTask: vi.fn().mockResolvedValue({ status: "completed" }),
+      failMentionTask: vi.fn().mockResolvedValue({ status: "failed" }),
+    };
+
+    await controller["processTask"](api as any, task as any);
+
+    expect(gatewayCliMocks.sendChatPrompt).not.toHaveBeenCalled();
+    expect(api.sendRoomMessage).toHaveBeenCalledWith(
+      "post-2",
+      expect.stringContaining("可以直接发：求购类似动作模型"),
+    );
+    expect(api.completeMentionTask).toHaveBeenCalledWith(
+      "task-2",
+      expect.objectContaining({
+        mode: "strategy",
+        intent: "posting_copy",
+        sessionKey: "agent:main:chek:mentions:room:post-2",
+      }),
+    );
   });
 });

@@ -1,4 +1,4 @@
-import type { BrowserAuthSession, JsonObject, MentionTask } from "./types.js";
+import type { BrowserAuthSession, BuddyRoomMessage, JsonObject, MentionTask } from "./types.js";
 export declare class ChekApiError extends Error {
     status: number;
     body: unknown;
@@ -21,6 +21,7 @@ export declare class ChekApiClient {
     }): Promise<BrowserAuthSession>;
     pollBrowserAuthSession(sessionId: string, deviceCode: string): Promise<BrowserAuthSession>;
     listPendingMentionTasks(pageSize?: number): Promise<MentionTask[]>;
+    listRoomMessages(postId: string, pageSize?: number): Promise<BuddyRoomMessage[]>;
     claimMentionTask(taskId: string): Promise<MentionTask>;
     completeMentionTask(taskId: string, result: JsonObject): Promise<MentionTask>;
     failMentionTask(taskId: string, result: JsonObject): Promise<MentionTask>;

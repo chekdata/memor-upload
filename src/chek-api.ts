@@ -1,4 +1,9 @@
-import type { BrowserAuthSession, JsonObject, MentionTask } from "./types.js";
+import type {
+  BrowserAuthSession,
+  BuddyRoomMessage,
+  JsonObject,
+  MentionTask,
+} from "./types.js";
 
 type RequestOptions = {
   method?: "GET" | "POST";
@@ -95,6 +100,16 @@ export class ChekApiClient {
     });
     const payload = await this.requestJson<{ items?: MentionTask[] }>(
       `/buddy/v1/mention-tasks?${query.toString()}`,
+    );
+    return Array.isArray(payload?.items) ? payload.items : [];
+  }
+
+  async listRoomMessages(postId: string, pageSize = 100): Promise<BuddyRoomMessage[]> {
+    const query = new URLSearchParams({
+      pageSize: String(Math.max(1, Math.min(pageSize, 100))),
+    });
+    const payload = await this.requestJson<{ items?: BuddyRoomMessage[] }>(
+      `/buddy/v1/posts/${postId}/messages?${query.toString()}`,
     );
     return Array.isArray(payload?.items) ? payload.items : [];
   }

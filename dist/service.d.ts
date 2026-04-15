@@ -32,11 +32,12 @@ export declare class MemorUploadController {
         backend: string;
         gateway: string;
     }>;
-    private injectSessionNoteBestEffort;
+    private injectSessionNoteForKeyBestEffort;
     private scheduleNext;
     private pollLoop;
     private pollOnce;
     private processTask;
+    private loadRoomMessages;
     private generateReply;
     private persistSnapshot;
 }
