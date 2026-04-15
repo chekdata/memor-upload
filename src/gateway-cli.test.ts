@@ -4,7 +4,12 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { resolveGatewayInvocation } from "./gateway-cli.js";
+import {
+  extractGatewayJsonPayload,
+  extractReplyFromTranscriptEntries,
+  resolveGatewayInvocation,
+  resolveTranscriptFile,
+} from "./gateway-cli.js";
 
 function makeTempFile(name: string): string {
   const dir = mkdtempSync(path.join(os.tmpdir(), "memor-upload-gateway-cli-"));
@@ -74,5 +79,83 @@ describe("resolveGatewayInvocation", () => {
       command: "openclaw",
       argsPrefix: [],
     });
+  });
+});
+
+describe("gateway cli transcript helpers", () => {
+  it("extracts the trailing JSON payload after noisy plugin logs", () => {
+    const stdout = [
+      "[plugins] feishu_doc: Registered feishu_doc",
+      "[plugins] feishu_wiki: Registered feishu_wiki tool",
+      '{ "ok": true, "status": "started" }',
+    ].join("\n");
+
+    expect(extractGatewayJsonPayload(stdout)).toBe('{ "ok": true, "status": "started" }');
+  });
+
+  it("resolves the transcript file from a session patch result", () => {
+    expect(
+      resolveTranscriptFile({
+        path: "/tmp/openclaw/sessions.json",
+        entry: {
+          sessionId: "session-1",
+        },
+      }),
+    ).toBe(path.join("/tmp/openclaw", "session-1.jsonl"));
+  });
+
+  it("extracts the model reply tied to the prompt message id", () => {
+    const entries = [
+      {
+        type: "message",
+        id: "inject-1",
+        message: {
+          role: "assistant",
+          stopReason: "injected",
+          content: [{ type: "text", text: "[CHEK @]\n\n你在房间里被 @ 了。" }],
+        },
+      },
+      {
+        type: "message",
+        id: "prompt-1",
+        parentId: "inject-1",
+        message: {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "请回复一下\n[message_id: memor-upload-abc]",
+            },
+          ],
+        },
+      },
+      {
+        type: "message",
+        id: "reply-1",
+        parentId: "prompt-1",
+        message: {
+          role: "assistant",
+          content: [
+            {
+              type: "text",
+              text: "收到，我这就看看。 [[reply_to: memor-upload-abc]]",
+            },
+          ],
+        },
+      },
+      {
+        type: "message",
+        id: "note-1",
+        message: {
+          role: "assistant",
+          stopReason: "injected",
+          content: [{ type: "text", text: "[CHEK 已发送]" }],
+        },
+      },
+    ];
+
+    expect(extractReplyFromTranscriptEntries(entries as never, "memor-upload-abc")).toBe(
+      "收到，我这就看看。",
+    );
   });
 });

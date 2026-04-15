@@ -5,6 +5,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import { sanitizeModelReplyText } from "./render.js";
 import type { ChatFinalPayload, SessionPatchResult } from "./types.js";
 
 const require = createRequire(import.meta.url);
@@ -81,16 +82,45 @@ function getGatewayInvocation(): GatewayInvocation {
   return cachedInvocation;
 }
 
-async function parseJsonOutput(stdout: string, stderr: string): Promise<unknown> {
+export function extractGatewayJsonPayload(stdout: string): string {
   const trimmed = stdout.trim();
   if (!trimmed) {
+    return "";
+  }
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      JSON.parse(trimmed);
+      return trimmed;
+    } catch {
+      // Keep scanning for a valid JSON suffix when stdout starts with log lines like "[plugins] ...".
+    }
+  }
+  const lines = trimmed.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    const candidate = lines.slice(index).join("\n").trim();
+    if (!candidate || (!candidate.startsWith("{") && !candidate.startsWith("["))) {
+      continue;
+    }
+    try {
+      JSON.parse(candidate);
+      return candidate;
+    } catch {
+      // Keep looking for a valid JSON suffix.
+    }
+  }
+  return trimmed;
+}
+
+async function parseJsonOutput(stdout: string, stderr: string): Promise<unknown> {
+  const payloadText = extractGatewayJsonPayload(stdout);
+  if (!payloadText) {
     throw new Error(`Gateway call returned empty stdout.\nstderr: ${stderr.trim()}`);
   }
   try {
-    return JSON.parse(trimmed) as unknown;
+    return JSON.parse(payloadText) as unknown;
   } catch (error) {
     throw new Error(
-      `Failed to parse gateway JSON response: ${String(error)}\nstdout: ${trimmed}\nstderr: ${stderr.trim()}`,
+      `Failed to parse gateway JSON response: ${String(error)}\nstdout: ${stdout.trim()}\nstderr: ${stderr.trim()}`,
     );
   }
 }
@@ -121,7 +151,8 @@ export async function gatewayCall<T>(
 }
 
 async function ensureTranscriptFile(result: SessionPatchResult): Promise<void> {
-  const sessionFile = result.entry?.sessionFile?.trim();
+  const sessionId = result.entry?.sessionId?.trim();
+  const sessionFile = resolveTranscriptFile(result);
   if (!sessionFile) {
     return;
   }
@@ -129,8 +160,159 @@ async function ensureTranscriptFile(result: SessionPatchResult): Promise<void> {
     await fs.access(sessionFile);
   } catch {
     await fs.mkdir(path.dirname(sessionFile), { recursive: true });
-    await fs.writeFile(sessionFile, "", "utf-8");
+    const header = {
+      type: "session",
+      version: 3,
+      id: sessionId || path.basename(sessionFile, ".jsonl"),
+      timestamp: new Date().toISOString(),
+      cwd: process.cwd(),
+    };
+    await fs.writeFile(sessionFile, `${JSON.stringify(header)}\n`, "utf-8");
   }
+}
+
+export function resolveTranscriptFile(result: SessionPatchResult): string {
+  const sessionId = result.entry?.sessionId?.trim();
+  return (
+    result.entry?.sessionFile?.trim()
+    || (sessionId && result.path?.trim()
+      ? path.join(path.dirname(result.path.trim()), `${sessionId}.jsonl`)
+      : "")
+  ).trim();
+}
+
+type TranscriptEntry = {
+  type?: string;
+  id?: string;
+  parentId?: string;
+  message?: {
+    role?: string;
+    stopReason?: string;
+    content?: Array<{
+      type?: string;
+      text?: string;
+    }>;
+  };
+};
+
+function extractTranscriptText(entry: TranscriptEntry | null | undefined): string {
+  const parts = Array.isArray(entry?.message?.content) ? entry.message.content : [];
+  return sanitizeModelReplyText(
+    parts
+      .map((item) => (item && typeof item.text === "string" ? item.text : ""))
+      .filter(Boolean)
+      .join("\n"),
+  );
+}
+
+export function extractReplyFromTranscriptEntries(
+  entries: TranscriptEntry[],
+  messageId: string,
+): string {
+  const marker = `[message_id: ${messageId}]`;
+  let promptIndex = -1;
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
+    if (
+      entry?.type === "message"
+      && entry.message?.role === "user"
+      && extractTranscriptText(entry).includes(marker)
+      && typeof entry.id === "string"
+      && entry.id.trim().length > 0
+    ) {
+      promptIndex = index;
+      break;
+    }
+  }
+  if (promptIndex < 0) {
+    return "";
+  }
+  const promptId = String(entries[promptIndex]?.id || "").trim();
+  if (!promptId) {
+    return "";
+  }
+  const parentMap = new Map<string, string>();
+  for (const entry of entries) {
+    const id = String(entry?.id || "").trim();
+    const parentId = String(entry?.parentId || "").trim();
+    if (id && parentId) {
+      parentMap.set(id, parentId);
+    }
+  }
+  const isDescendantOfPrompt = (entry: TranscriptEntry): boolean => {
+    let cursor = String(entry.parentId || "").trim();
+    let depth = 0;
+    while (cursor && depth < 32) {
+      if (cursor === promptId) {
+        return true;
+      }
+      cursor = parentMap.get(cursor) || "";
+      depth += 1;
+    }
+    return false;
+  };
+
+  for (let index = entries.length - 1; index > promptIndex; index -= 1) {
+    const entry = entries[index];
+    if (entry?.type !== "message") {
+      continue;
+    }
+    if (entry.message?.role !== "assistant") {
+      continue;
+    }
+    if (entry.message?.stopReason === "injected") {
+      continue;
+    }
+    if (!isDescendantOfPrompt(entry)) {
+      continue;
+    }
+    const text = extractTranscriptText(entry);
+    if (text) {
+      return text;
+    }
+  }
+  return "";
+}
+
+async function waitForTranscriptReply(
+  session: SessionPatchResult,
+  messageId: string,
+  timeoutMs = gatewayTimeoutMs,
+): Promise<string> {
+  const sessionFile = resolveTranscriptFile(session);
+  if (!sessionFile) {
+    throw new Error("Session transcript file could not be resolved.");
+  }
+  const startedAt = Date.now();
+  while (Date.now() - startedAt <= timeoutMs) {
+    try {
+      const raw = await fs.readFile(sessionFile, "utf-8");
+      const entries = raw
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+          try {
+            return JSON.parse(line) as TranscriptEntry;
+          } catch {
+            return null;
+          }
+        })
+        .filter((entry): entry is TranscriptEntry => Boolean(entry));
+      const reply = extractReplyFromTranscriptEntries(entries, messageId);
+      if (reply) {
+        return reply;
+      }
+    } catch (error) {
+      if (!(error instanceof Error) || !/ENOENT/i.test(error.message)) {
+        throw error;
+      }
+    }
+    await new Promise((resolve) => {
+      setTimeout(resolve, 400);
+    });
+  }
+  throw new Error("OpenClaw reply did not appear in the session transcript before timeout.");
 }
 
 export async function ensureSession(sessionKey: string, label: string): Promise<SessionPatchResult> {
@@ -156,7 +338,8 @@ export async function injectSessionNote(
 
 export async function sendChatPrompt(sessionKey: string, message: string): Promise<ChatFinalPayload> {
   const idempotencyKey = `memor-upload-${randomUUID()}`;
-  return await gatewayCall<ChatFinalPayload>(
+  const session = await ensureSession(sessionKey, "CHEK Mentions");
+  const started = await gatewayCall<ChatFinalPayload>(
     "chat.send",
     {
       sessionKey,
@@ -165,6 +348,13 @@ export async function sendChatPrompt(sessionKey: string, message: string): Promi
       timeoutMs: gatewayTimeoutMs,
       idempotencyKey,
     },
-    { expectFinal: true },
   );
+  const reply = await waitForTranscriptReply(session, idempotencyKey, gatewayTimeoutMs);
+  return {
+    runId: started.runId,
+    status: "ok",
+    result: {
+      payloads: [{ text: reply }],
+    },
+  };
 }

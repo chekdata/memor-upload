@@ -1,5 +1,6 @@
 import type { ChatFinalPayload, MentionTask } from "./types.js";
 export declare const CURRENT_INSTALL_SPEC = "https://github.com/chekdata/memor-upload/archive/refs/heads/main.tar.gz?download=1";
+export declare function sanitizeModelReplyText(value: string): string;
 export declare function buildTaskInjectionText(task: MentionTask): string;
 export declare function buildAutoReplyPrompt(task: MentionTask): string;
 export declare function buildFallbackReply(task: MentionTask): string;

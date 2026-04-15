@@ -5,6 +5,7 @@ import {
   buildFallbackReply,
   buildTaskInjectionText,
   extractChatReplyText,
+  sanitizeModelReplyText,
 } from "./render.js";
 
 describe("render helpers", () => {
@@ -17,6 +18,15 @@ describe("render helpers", () => {
         },
       }),
     ).toBe("第一句\n第二句");
+  });
+
+  it("sanitizes reply markers from model text", () => {
+    expect(
+      sanitizeModelReplyText(
+        "收到，我这就看看。 [[reply_to: memor-upload-e2e-123]]",
+      ),
+    ).toBe("收到，我这就看看。");
+    expect(sanitizeModelReplyText("我先看下哈。[[reply_to_current]]")).toBe("我先看下哈。");
   });
 
   it("builds injection text and fallback reply", () => {

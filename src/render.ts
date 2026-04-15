@@ -11,6 +11,13 @@ function compact(value: string, maxLength: number): string {
   return `${normalized.slice(0, maxLength - 1).trim()}…`;
 }
 
+export function sanitizeModelReplyText(value: string): string {
+  return String(value || "")
+    .replace(/\s*\[\[reply_to[^\]]*\]\]\s*/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function buildTaskInjectionText(task: MentionTask): string {
   const payload = task.payload || {};
   const roomTitle = payload.postTitle || task.postId || "未命名房间";
@@ -61,7 +68,7 @@ export function extractChatReplyText(payload: ChatFinalPayload): string {
   const result = payload?.result;
   const messages = Array.isArray(result?.payloads) ? result.payloads : [];
   return messages
-    .map((item) => (item && typeof item.text === "string" ? item.text.trim() : ""))
+    .map((item) => (item && typeof item.text === "string" ? sanitizeModelReplyText(item.text) : ""))
     .filter(Boolean)
     .join("\n")
     .trim();

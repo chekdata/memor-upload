@@ -165,6 +165,11 @@ export class MemorUploadController {
             gateway: "ok",
         };
     }
+    injectSessionNoteBestEffort(message, label) {
+        void injectSessionNote(this.config.sessionKey, message, label).catch((error) => {
+            this.logger.warn(`[memor-upload] failed to inject ${label} note: ${summarizeError(error)}`);
+        });
+    }
     scheduleNext(delayMs) {
         if (!this.started) {
             return;
@@ -266,7 +271,7 @@ export class MemorUploadController {
                 throw new Error(`Task ${task.id} is missing postId.`);
             }
             await ensureSession(this.config.sessionKey, SESSION_LABEL);
-            await injectSessionNote(this.config.sessionKey, buildTaskInjectionText(task), "CHEK @");
+            this.injectSessionNoteBestEffort(buildTaskInjectionText(task), "CHEK @");
             const processed = await this.generateReply(task);
             await api.sendRoomMessage(postId, processed.reply);
             await api.completeMentionTask(task.id, {
@@ -277,19 +282,14 @@ export class MemorUploadController {
             this.snapshot.lastTaskAt = nowIso();
             this.snapshot.lastTaskId = task.id;
             this.snapshot.lastSuccessAt = nowIso();
-            await injectSessionNote(this.config.sessionKey, `已自动回复到《${task.payload.postTitle || postId}》：${processed.reply}`, "CHEK 已发送");
+            this.injectSessionNoteBestEffort(`已自动回复到《${task.payload.postTitle || postId}》：${processed.reply}`, "CHEK 已发送");
             await this.persistSnapshot();
         }
         catch (error) {
             const reason = summarizeError(error);
             this.snapshot.lastError = reason;
             await this.persistSnapshot();
-            try {
-                await injectSessionNote(this.config.sessionKey, `自动回复失败：${reason}`, "CHEK 失败");
-            }
-            catch (injectError) {
-                this.logger.warn(`[memor-upload] failed to inject failure note: ${summarizeError(injectError)}`);
-            }
+            this.injectSessionNoteBestEffort(`自动回复失败：${reason}`, "CHEK 失败");
             if (claimedTask) {
                 try {
                     await api.failMentionTask(task.id, {
@@ -319,7 +319,7 @@ export class MemorUploadController {
         }
         catch (error) {
             const fallbackReply = buildFallbackReply(task);
-            await injectSessionNote(this.config.sessionKey, `本地模型生成失败，已使用兜底回复：${summarizeError(error)}`, "CHEK 兜底");
+            this.injectSessionNoteBestEffort(`本地模型生成失败，已使用兜底回复：${summarizeError(error)}`, "CHEK 兜底");
             return {
                 reply: fallbackReply,
                 mode: "fallback",

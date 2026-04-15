@@ -86,10 +86,12 @@ export type SessionPatchEntry = {
 };
 export type SessionPatchResult = {
     ok?: boolean;
+    path?: string;
     key?: string;
     entry?: SessionPatchEntry;
 };
 export type ChatFinalPayload = {
+    runId?: string;
     status?: string;
     result?: {
         payloads?: Array<{

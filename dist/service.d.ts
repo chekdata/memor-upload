@@ -32,6 +32,7 @@ export declare class MemorUploadController {
         backend: string;
         gateway: string;
     }>;
+    private injectSessionNoteBestEffort;
     private scheduleNext;
     private pollLoop;
     private pollOnce;
