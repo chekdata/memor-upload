@@ -67,12 +67,24 @@ describe("render helpers", () => {
             },
             result: {},
         };
+        const openclawTask = {
+            id: "task-openclaw",
+            status: "pending",
+            payload: {
+                postTitle: "OpenClaw 接入",
+                messageContent: "@你 这次请直接告诉我在这台机器上完成 MEMOR Upload 安装和授权的第一步。",
+            },
+            result: {},
+        };
         expect(buildReplyStrategy(postingTask).intent).toBe("posting_copy");
         expect(buildReplyStrategy(postingTask).directReply).toContain("可以直接发：");
         expect(buildReplyStrategy(downloadTask).intent).toBe("download_troubleshoot");
         expect(buildReplyStrategy(downloadTask).directReply).toContain("下载或分享面板");
         expect(buildReplyStrategy(saleTask).directReply).toContain("支持开源共享，也接受商业授权/成品出售");
         expect(buildReplyStrategy(introTask).directReply).toContain("这是G1 动作模型");
+        expect(buildReplyStrategy(openclawTask).intent).toBe("openclaw_bootstrap");
+        expect(buildReplyStrategy(openclawTask).directReply).toContain("openclaw plugins install");
+        expect(buildReplyStrategy(openclawTask).directReply).toContain("/chek-setup");
     });
     it("injects recent room context and honesty rules into the prompt", () => {
         const task = {

@@ -11,6 +11,7 @@ import type { ChatFinalPayload, SessionPatchResult } from "./types.js";
 const require = createRequire(import.meta.url);
 const execFileAsync = promisify(execFile);
 const gatewayTimeoutMs = 45_000;
+const DEFAULT_CHAT_SESSION_LABEL = "CHEK Mentions";
 
 type GatewayInvocation = {
   command: string;
@@ -336,9 +337,14 @@ export async function injectSessionNote(
   });
 }
 
-export async function sendChatPrompt(sessionKey: string, message: string): Promise<ChatFinalPayload> {
+export async function sendChatPrompt(
+  sessionKey: string,
+  message: string,
+  options: { sessionLabel?: string } = {},
+): Promise<ChatFinalPayload> {
   const idempotencyKey = `memor-upload-${randomUUID()}`;
-  const session = await ensureSession(sessionKey, "CHEK Mentions");
+  const sessionLabel = String(options.sessionLabel || "").trim() || DEFAULT_CHAT_SESSION_LABEL;
+  const session = await ensureSession(sessionKey, sessionLabel);
   const started = await gatewayCall<ChatFinalPayload>(
     "chat.send",
     {

@@ -167,6 +167,13 @@ export function detectReplyIntent(
     .join(" ")
     .toLowerCase();
   if (
+    /openclaw|memor upload|memor-upload|\/chek-setup|设备绑定|浏览器授权|完成授权|完成绑定/.test(
+      corpus,
+    )
+  ) {
+    return "openclaw_bootstrap";
+  }
+  if (
     /怎么下载|下载.*(失败|没反应|没反馈|不了|不动)|点下载|下载模型|下载链接|网络问题|源不可用/.test(
       corpus,
     )
@@ -182,7 +189,7 @@ export function detectReplyIntent(
   if (/更吸引人|更抓人|更有吸引力/.test(corpus)) {
     return "appeal_judgement";
   }
-  if (/太乱|更极简|极简|简化|看不懂|第一步|会不会乱|太复杂|太花/.test(corpus)) {
+  if (/太乱|更极简|极简|简化|看不懂|会不会乱|太复杂|太花/.test(corpus)) {
     return "clarity_judgement";
   }
   if (/怎么发|怎么写|怎么说|文案|标题|发更好|怎么发布|求购.*怎么|怎么介绍|如何介绍|怎么讲|怎么描述/.test(corpus)) {
@@ -201,6 +208,8 @@ function buildDirectStrategyReply(
 ): string | null {
   const content = String(task.payload.messageContent || "");
   switch (intent) {
+    case "openclaw_bootstrap":
+      return `第一步先安装 MEMOR Upload：openclaw plugins install ${CURRENT_INSTALL_SPEC}。装完如果没自动继续，再执行 /chek-setup。`;
     case "posting_copy":
       if (/怎么介绍|如何介绍|怎么讲|怎么描述/.test(content)) {
         return `可以直接发：这是${subject}，已附演示视频、适配机型和安装说明，拿来就能跑，感兴趣的来聊。`;
@@ -237,6 +246,11 @@ function buildDirectStrategyReply(
 
 function buildStrategyGuidance(intent: ReplyIntent, subject: string): { guidance: string; summary: string } {
   switch (intent) {
+    case "openclaw_bootstrap":
+      return {
+        guidance: "对方在问 OpenClaw / MEMOR Upload 的安装、授权或绑定。请直接回答下一步操作，优先给安装命令和 /chek-setup，不要岔到房间内容优化。",
+        summary: "直接给 OpenClaw 安装与授权下一步",
+      };
     case "posting_copy":
       return {
         guidance: `对方在问发布文案或怎么发。直接给一版可复制的话术，围绕 ${subject}，不用先寒暄。`,

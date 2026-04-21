@@ -30,5 +30,7 @@ type TranscriptEntry = {
 export declare function extractReplyFromTranscriptEntries(entries: TranscriptEntry[], messageId: string): string;
 export declare function ensureSession(sessionKey: string, label: string): Promise<SessionPatchResult>;
 export declare function injectSessionNote(sessionKey: string, message: string, label: string): Promise<void>;
-export declare function sendChatPrompt(sessionKey: string, message: string): Promise<ChatFinalPayload>;
+export declare function sendChatPrompt(sessionKey: string, message: string, options?: {
+    sessionLabel?: string;
+}): Promise<ChatFinalPayload>;
 export {};

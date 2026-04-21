@@ -108,7 +108,7 @@ export type ChatFinalPayload = {
         }>;
     };
 };
-export type ReplyIntent = "generic" | "posting_copy" | "listing_readiness" | "value_judgement" | "appeal_judgement" | "clarity_judgement" | "download_troubleshoot" | "distribution_choice";
+export type ReplyIntent = "openclaw_bootstrap" | "generic" | "posting_copy" | "listing_readiness" | "value_judgement" | "appeal_judgement" | "clarity_judgement" | "download_troubleshoot" | "distribution_choice";
 export type ProcessedTaskResult = {
     reply: string;
     mode: "model" | "strategy" | "fallback";

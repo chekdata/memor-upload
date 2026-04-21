@@ -119,6 +119,7 @@ export type ChatFinalPayload = {
 };
 
 export type ReplyIntent =
+  | "openclaw_bootstrap"
   | "generic"
   | "posting_copy"
   | "listing_readiness"

@@ -354,7 +354,12 @@ export class MemorUploadController {
         "CHEK @",
       );
 
-      const processed = await this.generateReply(task, roomMessages, taskSessionKey);
+      const processed = await this.generateReply(
+        task,
+        roomMessages,
+        taskSessionKey,
+        taskSessionLabel,
+      );
       await api.sendRoomMessage(postId, processed.reply);
       await api.completeMentionTask(task.id, {
         reply: processed.reply,
@@ -412,6 +417,7 @@ export class MemorUploadController {
     task: MentionTask,
     roomMessages: BuddyRoomMessage[],
     sessionKey: string,
+    sessionLabel: string,
   ): Promise<ProcessedTaskResult> {
     const strategy = buildReplyStrategy(task, roomMessages);
     if (strategy.directReply) {
@@ -425,7 +431,9 @@ export class MemorUploadController {
 
     const prompt = buildAutoReplyPrompt(task, roomMessages);
     try {
-      const result = await sendChatPrompt(sessionKey, prompt);
+      const result = await sendChatPrompt(sessionKey, prompt, {
+        sessionLabel,
+      });
       const reply = extractChatReplyText(result);
       if (!reply) {
         throw new Error("OpenClaw returned an empty reply.");

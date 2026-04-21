@@ -278,7 +278,7 @@ export class MemorUploadController {
             const roomMessages = await this.loadRoomMessages(api, task, postId);
             await ensureSession(taskSessionKey, taskSessionLabel);
             this.injectSessionNoteForKeyBestEffort(taskSessionKey, buildTaskInjectionText(task, roomMessages), "CHEK @");
-            const processed = await this.generateReply(task, roomMessages, taskSessionKey);
+            const processed = await this.generateReply(task, roomMessages, taskSessionKey, taskSessionLabel);
             await api.sendRoomMessage(postId, processed.reply);
             await api.completeMentionTask(task.id, {
                 reply: processed.reply,
@@ -320,7 +320,7 @@ export class MemorUploadController {
             return selectRoomMessagesForContext(task, []);
         }
     }
-    async generateReply(task, roomMessages, sessionKey) {
+    async generateReply(task, roomMessages, sessionKey, sessionLabel) {
         const strategy = buildReplyStrategy(task, roomMessages);
         if (strategy.directReply) {
             return {
@@ -332,7 +332,9 @@ export class MemorUploadController {
         }
         const prompt = buildAutoReplyPrompt(task, roomMessages);
         try {
-            const result = await sendChatPrompt(sessionKey, prompt);
+            const result = await sendChatPrompt(sessionKey, prompt, {
+                sessionLabel,
+            });
             const reply = extractChatReplyText(result);
             if (!reply) {
                 throw new Error("OpenClaw returned an empty reply.");

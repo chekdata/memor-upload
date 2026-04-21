@@ -93,6 +93,15 @@ describe("render helpers", () => {
       },
       result: {},
     };
+    const openclawTask = {
+      id: "task-openclaw",
+      status: "pending",
+      payload: {
+        postTitle: "OpenClaw 接入",
+        messageContent: "@你 这次请直接告诉我在这台机器上完成 MEMOR Upload 安装和授权的第一步。",
+      },
+      result: {},
+    };
 
     expect(buildReplyStrategy(postingTask as never).intent).toBe("posting_copy");
     expect(buildReplyStrategy(postingTask as never).directReply).toContain("可以直接发：");
@@ -100,6 +109,9 @@ describe("render helpers", () => {
     expect(buildReplyStrategy(downloadTask as never).directReply).toContain("下载或分享面板");
     expect(buildReplyStrategy(saleTask as never).directReply).toContain("支持开源共享，也接受商业授权/成品出售");
     expect(buildReplyStrategy(introTask as never).directReply).toContain("这是G1 动作模型");
+    expect(buildReplyStrategy(openclawTask as never).intent).toBe("openclaw_bootstrap");
+    expect(buildReplyStrategy(openclawTask as never).directReply).toContain("openclaw plugins install");
+    expect(buildReplyStrategy(openclawTask as never).directReply).toContain("/chek-setup");
   });
 
   it("injects recent room context and honesty rules into the prompt", () => {

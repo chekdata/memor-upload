@@ -123,7 +123,9 @@ describe("MemorUploadController", () => {
         expect(api.sendRoomMessage).toHaveBeenCalledWith("post-1", "看到了。你可以直接补一句最想让我判断的点，我就按这条继续给你建议。");
         expect(controller.getSnapshot().lastTaskId).toBe("task-1");
         expect(gatewayCliMocks.ensureSession).toHaveBeenCalledWith("agent:main:chek:mentions:room:post-1", "CHEK 房间 · Smoke Room · post-1");
-        expect(gatewayCliMocks.sendChatPrompt).toHaveBeenCalledWith("agent:main:chek:mentions:room:post-1", expect.any(String));
+        expect(gatewayCliMocks.sendChatPrompt).toHaveBeenCalledWith("agent:main:chek:mentions:room:post-1", expect.any(String), {
+            sessionLabel: "CHEK 房间 · Smoke Room · post-1",
+        });
         expect(logger.warn).toHaveBeenCalled();
     });
     it("uses direct strategy replies for common publishing asks", async () => {

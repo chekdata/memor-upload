@@ -156,6 +156,9 @@ describe("MemorUploadController", () => {
     expect(gatewayCliMocks.sendChatPrompt).toHaveBeenCalledWith(
       "agent:main:chek:mentions:room:post-1",
       expect.any(String),
+      {
+        sessionLabel: "CHEK 房间 · Smoke Room · post-1",
+      },
     );
     expect(logger.warn).toHaveBeenCalled();
   });
