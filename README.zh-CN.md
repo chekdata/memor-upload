@@ -17,8 +17,29 @@
 - 通过本地 OpenClaw chat loop 自动生成一条简短回复
 - 回发到 CHEK 房间
 - 把 task 标记为 `completed` 或 `failed`
+- 同时提供已经合并进来的 CHEK Agent-native App CLI：`packages/chek-app-cli`
 
 也就是说，在“蒸馏自己 / 蒸馏朋友 / 成为电子居民”的更长期目标完全实现之前，这个仓库本身已经是一条可安装、可调试、可联调的真实产品链路。
+
+## CHEK App CLI
+
+`CHEK-APP-CLI` 现在已经迁入本仓库，位置是
+[`packages/chek-app-cli`](./packages/chek-app-cli)。它是 CHEK 智能汽车与人形机器人数据应用的 Agent-native CLI 主入口：
+
+- 买车 OpenClaw 与 AI 版汽车之家式 workflow
+- 智能汽车数据库、榜单、车型对比命令
+- 机器人数据库与人形机器人配置数据命令
+- 类 Lark 的 `--as auto/user/service/none` 身份切换
+- OpenAPI 自动命令树、examples、manifest、smoke checks
+
+本地开发：
+
+```bash
+cd packages/chek-app-cli
+python -m pip install -e ".[dev]"
+chek manifest
+chek smoke api --dry-run
+```
 
 ## 更长期的 3 条主线
 
@@ -167,6 +188,7 @@ openclaw plugins install https://github.com/chekdata/memor-upload/archive/refs/h
 - `docs/bootstrap-message.md`：面向用户的一段式引导文案
 - `docs/device-code-auth.md`：当前可用的浏览器授权链路和 fallback 规则
 - `docs/troubleshooting.md`：排障说明
+- `packages/chek-app-cli`：合并进来的 CHEK Agent-native 后端 CLI
 
 ## 开发
 

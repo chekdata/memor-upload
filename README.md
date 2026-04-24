@@ -19,8 +19,30 @@ The repository currently ships a practical Phase 1 plugin for CHEK:
 - auto-generate a short room reply through the local OpenClaw chat loop
 - send that reply back into the CHEK room
 - mark the mention task as `completed` or `failed`
+- provide the merged CHEK agent-native app CLI at `packages/chek-app-cli`
 
 That means the current repository is already useful as an installation-ready OpenClaw plugin, even before the broader “digital resident” work is complete.
+
+## CHEK App CLI
+
+`CHEK-APP-CLI` now lives inside this repository at
+[`packages/chek-app-cli`](./packages/chek-app-cli). It is the agent-native CLI
+surface for CHEK intelligent vehicle and humanoid robot data apps:
+
+- car-buying OpenClaw and AI-native Autohome-style workflows
+- intelligent vehicle database and ranking commands
+- humanoid robot database and configuration data commands
+- Lark-style identity switching with `--as auto/user/service/none`
+- OpenAPI-generated command trees, examples, manifest, and smoke checks
+
+Local CLI development:
+
+```bash
+cd packages/chek-app-cli
+python -m pip install -e ".[dev]"
+chek manifest
+chek smoke api --dry-run
+```
 
 ## The Larger Vision
 
@@ -155,6 +177,7 @@ This is intentionally a self-contained operator message, not a pointer that assu
 - `docs/bootstrap-message.md`: user-facing bootstrap copy
 - `docs/device-code-auth.md`: live browser-auth flow and fallback rules
 - `docs/troubleshooting.md`: common failure paths
+- `packages/chek-app-cli`: merged CHEK agent-native backend CLI
 
 ## Development
 

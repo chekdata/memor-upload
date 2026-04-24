@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.23.0
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+  chek-app-cli:
+    runs-on: ubuntu-latest
+    env:
+      CHEK_BACKEND_SAAS_OPENAPI: ${{ secrets.CHEK_BACKEND_SAAS_OPENAPI }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install CLI
+        working-directory: packages/chek-app-cli
+        run: python -m pip install -e ".[dev]"
+
+      - name: Test CLI
+        working-directory: packages/chek-app-cli
+        run: python -m pytest tests -q
+
+      - name: Check CLI OpenAPI registry drift
+        working-directory: packages/chek-app-cli
+        run: python scripts/check_registry_drift.py --allow-missing-optional

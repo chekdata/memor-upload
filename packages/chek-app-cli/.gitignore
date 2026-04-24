@@ -1,0 +1,10 @@
+__pycache__/
+.pytest_cache/
+*.egg-info/
+.coverage
+htmlcov/
+.agent-harness/
+.chek-app-cli/
+.env*
+!.env.example
+.DS_Store
